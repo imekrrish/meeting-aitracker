@@ -165,7 +165,7 @@ export class TranscriptProcessingService {
 
   public async getHistory(userId: string) {
     const items = await this.historyService.listHistory(userId);
-    return items.map((item) => ({
+    return items.map((item: any) => ({
       id: item.id,
       userName: item.userName,
       userEmail: item.userEmail,
