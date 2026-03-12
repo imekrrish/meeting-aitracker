@@ -131,8 +131,20 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 body: JSON.stringify({ email, password })
             });
             const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || "Login failed.");
-            onAuthSuccess(data.data.token, data.data.user);
+            
+            if (res.ok && data.success) {
+                if (data.data.requiresVerification) {
+                    setSuccess(data.data.message);
+                    setTab("register");
+                    setStep("otp");
+                    setOtpTimer(300);
+                    return;
+                }
+                
+                onAuthSuccess(data.data.token, data.data.user);
+            } else {
+                throw new Error(data.error || "Login failed.");
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
