@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomBytes } from "crypto";
 import { env } from "../config/env";
 import { HttpError } from "../utils/http-error";
 import { sanitizeOptionalText, sanitizePlainText } from "../utils/sanitize";
@@ -39,13 +39,14 @@ export class TranscriptProcessingService {
     }
   }
 
-  public async process(input: ProcessTranscriptInput, file?: Express.Multer.File) {
+  public async process(input: ProcessTranscriptInput, file: Express.Multer.File | undefined, userId: string) {
     const sanitizedInput = {
-      fullName: sanitizePlainText(input.fullName),
+      fullName: input.fullName ? sanitizePlainText(input.fullName) : null,
       email: sanitizePlainText(input.email),
-      meetingTitle: sanitizePlainText(input.meetingTitle),
+      meetingTitle: input.meetingTitle ? sanitizePlainText(input.meetingTitle) : null,
       projectName: sanitizeOptionalText(input.projectName),
-      transcriptText: input.transcriptText ? sanitizePlainText(input.transcriptText) : undefined
+      transcriptText: input.transcriptText ? sanitizePlainText(input.transcriptText) : undefined,
+      customColumns: input.customColumns
     };
 
     const ingestionPayload: TranscriptIngestionPayload = {
@@ -61,25 +62,27 @@ export class TranscriptProcessingService {
     const ingested = await adapter.ingest(ingestionPayload);
     const normalizedTranscript = this.normalizerService.normalize(ingested.transcriptText);
     const insights = await this.openAIService.extractMeetingInsights({
-      meetingTitle: sanitizedInput.meetingTitle,
+      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
       projectName: sanitizedInput.projectName,
-      transcriptText: normalizedTranscript
+      transcriptText: normalizedTranscript,
+      customColumns: sanitizedInput.customColumns
     });
 
-    const historyId = randomUUID();
+    const historyId = randomBytes(12).toString("hex");
     const outputDir = await this.artifactService.ensureHistoryDir(historyId);
     const excelPath = await this.excelService.generateWorkbook({
       outputDir,
-      meetingTitle: sanitizedInput.meetingTitle,
+      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
       projectName: sanitizedInput.projectName,
-      userName: sanitizedInput.fullName,
-      insights
+      userName: sanitizedInput.fullName ?? "Unknown User",
+      insights,
+      customColumns: sanitizedInput.customColumns
     });
     const pdfPath = await this.pdfService.generatePdf({
       outputDir,
-      meetingTitle: sanitizedInput.meetingTitle,
+      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
       projectName: sanitizedInput.projectName,
-      userName: sanitizedInput.fullName,
+      userName: sanitizedInput.fullName ?? "Unknown User",
       insights
     });
 
@@ -91,8 +94,8 @@ export class TranscriptProcessingService {
     try {
       await this.emailService.sendMeetingResults({
         to: sanitizedInput.email,
-        userName: sanitizedInput.fullName,
-        meetingTitle: sanitizedInput.meetingTitle,
+        userName: sanitizedInput.fullName ?? "User",
+        meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
         overallSummary: insights.overallSummary,
         pdfPath,
         excelPath
@@ -111,9 +114,10 @@ export class TranscriptProcessingService {
 
     const record = await this.historyService.createRecord({
       id: historyId,
-      userName: sanitizedInput.fullName,
+      userId,
+      userName: sanitizedInput.fullName ?? "Unknown User",
       userEmail: sanitizedInput.email,
-      meetingTitle: sanitizedInput.meetingTitle,
+      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
       projectName: sanitizedInput.projectName,
       transcriptText: normalizedTranscript,
       insights,
@@ -124,7 +128,7 @@ export class TranscriptProcessingService {
 
     return {
       historyId: record.id,
-      meetingTitle: sanitizedInput.meetingTitle,
+      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
       projectName: sanitizedInput.projectName,
       source: {
         type: ingested.sourceType,
@@ -148,8 +152,8 @@ export class TranscriptProcessingService {
 
     await this.emailService.sendMeetingResults({
       to: input.email ?? record.userEmail,
-      userName: record.userName,
-      meetingTitle: record.meetingTitle,
+      userName: record.userName ?? "Unknown User",
+      meetingTitle: record.meetingTitle ?? "Meeting Summary",
       overallSummary: record.overallSummary,
       pdfPath: record.generatedPdfPath,
       excelPath: record.generatedExcelPath
@@ -159,8 +163,8 @@ export class TranscriptProcessingService {
     return { sent: true };
   }
 
-  public async getHistory() {
-    const items = await this.historyService.listHistory();
+  public async getHistory(userId: string) {
+    const items = await this.historyService.listHistory(userId);
     return items.map((item) => ({
       id: item.id,
       userName: item.userName,

@@ -1,35 +1,36 @@
 import { DownloadActions } from "./DownloadActions";
 import { EmailStatusCard } from "./EmailStatusCard";
-import { InsightTable } from "./InsightTable";
 import type { ProcessResponse } from "../types/api";
 
 type ResultsSectionProps = {
   result: ProcessResponse;
 };
 
-function ListCard({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-      <p className="font-display text-lg font-semibold text-ink">{title}</p>
-      <div className="mt-3 space-y-2 text-sm text-slate-700">
-        {items.length ? items.map((item) => <p key={item}>• {item}</p>) : <p>No items generated.</p>}
-      </div>
-    </div>
-  );
-}
-
 export function ResultsSection({ result }: ResultsSectionProps) {
   const { insights } = result;
 
+  const hasBlockers = insights.blockers && insights.blockers.length > 0;
+
   return (
     <section className="space-y-6">
+      {/* Prominent Success Message */}
+      <div className="rounded-[32px] bg-emerald-500/10 border border-emerald-500/20 p-8 text-center text-emerald-900 shadow-sm transition-all hover:shadow-md">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg mb-4 text-2xl">
+          ✓
+        </div>
+        <h2 className="font-display text-3xl font-bold tracking-tight">Meeting Summarized and Sent!</h2>
+        <p className="mt-2 text-lg opacity-80 max-w-xl mx-auto">
+          We have successfully processed your transcript, generated the custom Microsoft Excel artifacts, and emailed them directly to your address.
+        </p>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
         <div className="glass-panel p-6">
-          <p className="text-xs uppercase tracking-[0.24em] text-tide">Results</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-tide">Synopsis</p>
           <h2 className="mt-3 font-display text-3xl font-bold text-ink">
             {insights.meetingTitleSuggestion ?? result.meetingTitle}
           </h2>
-          <p className="mt-4 text-sm leading-7 text-slate-700">{insights.overallSummary}</p>
+          <p className="mt-4 text-base leading-7 text-slate-700">{insights.overallSummary}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <span className="rounded-full bg-mist px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-tide">
               {result.source.label ?? "Manual transcript"}
@@ -40,7 +41,7 @@ export function ResultsSection({ result }: ResultsSectionProps) {
               </span>
             ) : null}
           </div>
-          <div className="mt-6">
+          <div className="mt-6 border-t border-slate-100 pt-6">
             <DownloadActions excelUrl={result.downloads.excelUrl} pdfUrl={result.downloads.pdfUrl} />
           </div>
         </div>
@@ -48,86 +49,40 @@ export function ResultsSection({ result }: ResultsSectionProps) {
         <EmailStatusCard sent={result.email.sent} message={result.email.message} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[24px] bg-ink p-5 text-white">
-          <p className="text-xs uppercase tracking-[0.22em] text-blue-200">Executive Summary</p>
-          <p className="mt-3 text-sm leading-7 text-blue-50">
-            {insights.executiveSummary ?? "No executive summary generated."}
+      {/* Simplified Highlight Section */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="font-display text-xl font-bold text-ink mb-4">⭐ Key Decisions</p>
+          <div className="space-y-3 text-sm text-slate-700">
+            {insights.keyDecisions && insights.keyDecisions.length > 0 ? (
+              insights.keyDecisions.map((item, idx) => (
+                <div key={idx} className="flex gap-3 bg-slate-50 rounded-xl p-3">
+                  <span className="text-blue-500 font-bold">•</span>
+                  <p>{item}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-slate-500 italic p-3">No key decisions identified.</p>
+            )}
+          </div>
+        </div>
+
+        <div className={`rounded-[24px] border p-6 shadow-sm transition-colors ${hasBlockers ? 'bg-red-50/50 border-red-200' : 'bg-white border-slate-200'}`}>
+          <p className={`font-display text-xl font-bold mb-4 ${hasBlockers ? 'text-red-700' : 'text-ink'}`}>
+            🚨 Blockers & Risks
           </p>
-        </div>
-        <div className="rounded-[24px] bg-white p-5">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Manager Summary</p>
-          <p className="mt-3 text-sm leading-7 text-slate-700">
-            {insights.managerSummary ?? "No manager summary generated."}
-          </p>
-        </div>
-        <div className="rounded-[24px] bg-white p-5">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Highlight Reel</p>
-          <div className="mt-3 space-y-2 text-sm text-slate-700">
-            {insights.highlightReel.map((item) => (
-              <p key={item}>• {item}</p>
-            ))}
+          <div className="space-y-3 text-sm">
+            {hasBlockers ? (
+              insights.blockers.map((item, idx) => (
+                <div key={idx} className="flex gap-3 bg-red-100/50 rounded-xl p-3 text-red-900 border border-red-100">
+                  <span className="text-red-500 font-bold">⚠️</span>
+                  <p>{item}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-slate-500 italic p-3">No critical blockers identified in this meeting.</p>
+            )}
           </div>
-        </div>
-        <div className="rounded-[24px] bg-white p-5">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Standup Conversion</p>
-          <div className="mt-3 text-sm text-slate-700">
-            <p className="font-semibold text-ink">Yesterday</p>
-            {insights.dailyStandupFormat.yesterday.map((item) => (
-              <p key={item}>• {item}</p>
-            ))}
-            <p className="mt-3 font-semibold text-ink">Today</p>
-            {insights.dailyStandupFormat.today.map((item) => (
-              <p key={item}>• {item}</p>
-            ))}
-            <p className="mt-3 font-semibold text-ink">Blockers</p>
-            {insights.dailyStandupFormat.blockers.map((item) => (
-              <p key={item}>• {item}</p>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ListCard title="Key Decisions" items={insights.keyDecisions} />
-        <ListCard title="Blockers" items={insights.blockers} />
-        <ListCard title="Risks & Dependencies" items={insights.riskAndDependencySection} />
-        <ListCard title="Suggested Next Meeting Agenda" items={insights.suggestedNextMeetingAgenda} />
-      </div>
-
-      <div className="glass-panel p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-tide">Structured Updates</p>
-            <h3 className="mt-2 font-display text-2xl font-bold text-ink">Extracted rows preview</h3>
-          </div>
-          <p className="text-sm text-slate-500">{insights.rows.length} extracted items</p>
-        </div>
-        <div className="mt-5">
-          <InsightTable rows={insights.rows} />
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-          <p className="font-display text-lg font-semibold text-ink">Owner-wise Action Tracker</p>
-          <div className="mt-3 space-y-4 text-sm text-slate-700">
-            {insights.ownerWiseActionTracker.map((entry, index) => (
-              <div key={`${entry.owner ?? "owner"}-${index}`}>
-                <p className="font-semibold text-ink">{entry.owner ?? "Unassigned"}</p>
-                {entry.items.map((item) => (
-                  <p key={item}>• {item}</p>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-          <p className="font-display text-lg font-semibold text-ink">Follow-up Email Draft</p>
-          <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700">
-            {insights.followUpEmailDraft ?? "No draft generated."}
-          </p>
         </div>
       </div>
     </section>

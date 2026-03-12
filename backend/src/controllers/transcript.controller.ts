@@ -1,4 +1,5 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware";
 import { TranscriptProcessingService } from "../services/transcript-processing.service";
 import { HttpError } from "../utils/http-error";
 import { emailTranscriptSchema, processTranscriptSchema } from "../validators/transcript.validator";
@@ -6,7 +7,7 @@ import { emailTranscriptSchema, processTranscriptSchema } from "../validators/tr
 const transcriptProcessingService = new TranscriptProcessingService();
 
 export class TranscriptController {
-  public async process(req: Request, res: Response) {
+  public async process(req: AuthenticatedRequest, res: Response) {
     transcriptProcessingService.validateFile(req.file);
 
     const transcriptText =
@@ -16,12 +17,23 @@ export class TranscriptController {
           ? "__file_present__"
           : undefined;
 
+    let parsedCustomColumns: string[] | undefined = undefined;
+    if (typeof req.body.customColumns === "string") {
+      try {
+        parsedCustomColumns = JSON.parse(req.body.customColumns);
+      } catch {
+        parsedCustomColumns = undefined;
+      }
+    }
+
+    // Use JWT user info instead of form body
     const candidate = {
-      fullName: req.body.fullName,
-      email: req.body.email,
+      fullName: req.userName ?? req.body.fullName,
+      email: req.userEmail!,
       meetingTitle: req.body.meetingTitle,
       projectName: req.body.projectName,
-      transcriptText
+      transcriptText,
+      customColumns: parsedCustomColumns
     };
 
     const parsed = processTranscriptSchema.safeParse(candidate);
@@ -34,14 +46,14 @@ export class TranscriptController {
       transcriptText: req.body.transcriptText
     };
 
-    const result = await transcriptProcessingService.process(payload, req.file);
+    const result = await transcriptProcessingService.process(payload, req.file, req.userId!);
     return res.status(200).json({
       success: true,
       data: result
     });
   }
 
-  public async resendEmail(req: Request, res: Response) {
+  public async resendEmail(req: AuthenticatedRequest, res: Response) {
     const parsed = emailTranscriptSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid email request.");
@@ -51,8 +63,8 @@ export class TranscriptController {
     return res.status(200).json({ success: true, data: result });
   }
 
-  public async history(_req: Request, res: Response) {
-    const items = await transcriptProcessingService.getHistory();
+  public async history(req: AuthenticatedRequest, res: Response) {
+    const items = await transcriptProcessingService.getHistory(req.userId!);
     return res.status(200).json({ success: true, data: items });
   }
 }

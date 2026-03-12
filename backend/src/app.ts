@@ -4,6 +4,7 @@ import path from "path";
 import { env } from "./config/env";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { notFoundMiddleware } from "./middleware/not-found.middleware";
+import { authRouter } from "./routes/auth.routes";
 import { healthRouter } from "./routes/health.routes";
 import { historyRouter } from "./routes/history.routes";
 import { transcriptRouter } from "./routes/transcript.routes";
@@ -20,6 +21,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use("/generated", express.static(path.resolve(env.generatedDir)));
 
+  app.use("/api/auth", authRouter);
   app.use("/api/health", healthRouter);
   app.use("/api/transcripts", transcriptRouter);
   app.use("/api/history", historyRouter);

@@ -4,9 +4,10 @@ import { prisma } from "./storage/prisma.service";
 export class HistoryService {
   public async createRecord(params: {
     id: string;
-    userName: string;
+    userId: string;
+    userName: string | null;
     userEmail: string;
-    meetingTitle: string;
+    meetingTitle: string | null;
     projectName: string | null;
     transcriptText: string;
     insights: MeetingInsight;
@@ -17,9 +18,10 @@ export class HistoryService {
     return prisma.processingHistory.create({
       data: {
         id: params.id,
-        userName: params.userName,
+        userId: params.userId,
+        userName: params.userName ?? "Unknown User",
         userEmail: params.userEmail,
-        meetingTitle: params.meetingTitle,
+        meetingTitle: params.meetingTitle ?? "Meeting Summary",
         projectName: params.projectName,
         transcriptText: params.transcriptText,
         overallSummary: params.insights.overallSummary,
@@ -32,8 +34,9 @@ export class HistoryService {
     });
   }
 
-  public async listHistory() {
+  public async listHistory(userId: string) {
     return prisma.processingHistory.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
       take: 20
     });

@@ -1,17 +1,6 @@
 import { z } from "zod";
 
-export const rowInsightSchema = z.object({
-  speaker: z.string().nullable(),
-  workDone: z.string().nullable(),
-  blocker: z.string().nullable(),
-  actionItem: z.string().nullable(),
-  owner: z.string().nullable(),
-  eta: z.string().nullable(),
-  priority: z.enum(["low", "medium", "high"]).nullable(),
-  status: z.enum(["not_started", "in_progress", "blocked", "done"]).nullable(),
-  notes: z.string().nullable(),
-  confidence: z.number().min(0).max(1)
-});
+export const rowInsightSchema = z.record(z.any());
 
 export const ownerActionSchema = z.object({
   owner: z.string().nullable(),

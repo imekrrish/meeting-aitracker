@@ -16,7 +16,8 @@ const envSchema = z.object({
   SMTP_PASS: z.string().min(1),
   MAIL_FROM: z.string().min(1),
   DATABASE_URL: z.string().min(1),
-  MAX_UPLOAD_SIZE_MB: z.coerce.number().default(2)
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().default(2),
+  JWT_SECRET: z.string().min(1)
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -8,6 +8,14 @@ type ApiEnvelope<T> = {
   error?: string;
 };
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem("auth_token");
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   const data = (await response.json()) as ApiEnvelope<T>;
   if (!response.ok || !data.success) {
@@ -19,6 +27,7 @@ async function parseJson<T>(response: Response): Promise<T> {
 export async function processTranscript(formData: FormData) {
   const response = await fetch(`${API_URL}/api/transcripts/process`, {
     method: "POST",
+    headers: getAuthHeaders(),
     body: formData
   });
 
@@ -26,7 +35,9 @@ export async function processTranscript(formData: FormData) {
 }
 
 export async function getHistory() {
-  const response = await fetch(`${API_URL}/api/history`);
+  const response = await fetch(`${API_URL}/api/history`, {
+    headers: getAuthHeaders()
+  });
   return parseJson<HistoryItem[]>(response);
 }
 
@@ -37,4 +48,3 @@ export function toAbsoluteUrl(url: string) {
 
   return `${API_URL}${url}`;
 }
-
