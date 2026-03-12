@@ -1,0 +1,12 @@
+Riya: Let us start with the billing dashboard work. Yesterday I completed the API integration for invoice totals.
+Riya: Today I will wire the filters and fix the pagination issue.
+Riya: I am blocked on missing sandbox credentials from finance.
+
+Arjun: I finished the export button UI and basic CSV logic.
+Arjun: I need confirmation on whether we should keep XLSX export in this sprint.
+
+Manager: Decision for now is yes, keep XLSX export because leadership wants a weekly downloadable report.
+Manager: Riya owns dashboard filters by Friday. Arjun owns XLSX export prototype by Monday.
+Manager: Risk is that finance credentials may slip and delay dashboard verification.
+Manager: Next meeting should review blockers, demo the export, and confirm rollout dates.
+

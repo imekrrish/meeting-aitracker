@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+backend/generated/*
+backend/uploads/*
+!backend/generated/.gitkeep
+!backend/uploads/.gitkeep
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+

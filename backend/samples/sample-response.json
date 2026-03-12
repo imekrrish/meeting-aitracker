@@ -1,0 +1,112 @@
+{
+  "success": true,
+  "data": {
+    "historyId": "cm7examplehistoryid",
+    "meetingTitle": "Billing Dashboard Sync",
+    "projectName": "Finance Analytics",
+    "normalizedTranscriptPreview": "Riya: Let us start with the billing dashboard work...",
+    "downloads": {
+      "excelUrl": "/generated/cm7examplehistoryid/meeting-tracker.xlsx",
+      "pdfUrl": "/generated/cm7examplehistoryid/meeting-summary.pdf"
+    },
+    "email": {
+      "sent": true,
+      "message": "Email sent successfully."
+    },
+    "insights": {
+      "meetingTitleSuggestion": "Billing Dashboard Delivery Review",
+      "overallSummary": "The team reviewed billing dashboard progress, confirmed XLSX export remains in scope, and identified finance sandbox credentials as the main blocker.",
+      "managerSummary": "Dashboard filters and XLSX export are the immediate priorities. Credential delays are the main schedule risk.",
+      "executiveSummary": "Work is advancing on the dashboard and export flow, but external credential dependency still threatens validation timing.",
+      "keyDecisions": [
+        "Keep XLSX export in the current sprint."
+      ],
+      "blockers": [
+        "Finance sandbox credentials are still pending."
+      ],
+      "risks": [
+        "Credential delays could block dashboard verification."
+      ],
+      "followUpQuestions": [
+        "When will finance share the sandbox credentials?"
+      ],
+      "followUpEmailDraft": "Thanks everyone. We agreed to keep XLSX export in scope. Riya will finish dashboard filters by Friday and Arjun will deliver the XLSX prototype by Monday. The main blocker remains finance sandbox credentials.",
+      "dailyStandupFormat": {
+        "yesterday": [
+          "API integration for invoice totals completed.",
+          "Export button UI and CSV logic completed."
+        ],
+        "today": [
+          "Wire filters and fix pagination.",
+          "Build XLSX export prototype."
+        ],
+        "blockers": [
+          "Waiting for finance sandbox credentials."
+        ]
+      },
+      "ownerWiseActionTracker": [
+        {
+          "owner": "Riya",
+          "items": [
+            "Finish dashboard filters by Friday"
+          ]
+        },
+        {
+          "owner": "Arjun",
+          "items": [
+            "Deliver XLSX export prototype by Monday"
+          ]
+        }
+      ],
+      "blockerRadar": [
+        {
+          "blocker": "Finance sandbox credentials pending",
+          "severity": "high",
+          "owner": "Finance / External"
+        }
+      ],
+      "riskAndDependencySection": [
+        "Dashboard verification depends on external finance credentials."
+      ],
+      "suggestedNextMeetingAgenda": [
+        "Review blocker status",
+        "Demo export progress",
+        "Confirm rollout dates"
+      ],
+      "highlightReel": [
+        "XLSX export remains in sprint scope",
+        "Dashboard filters assigned to Riya",
+        "XLSX prototype assigned to Arjun",
+        "Credentials are the primary blocker",
+        "Next meeting will focus on rollout readiness"
+      ],
+      "rows": [
+        {
+          "speaker": "Riya",
+          "workDone": "Completed API integration for invoice totals.",
+          "blocker": "Missing sandbox credentials from finance.",
+          "actionItem": "Wire dashboard filters and fix pagination.",
+          "owner": "Riya",
+          "eta": "Friday",
+          "priority": "high",
+          "status": "in_progress",
+          "notes": "Needs credentials to complete verification.",
+          "confidence": 0.9
+        },
+        {
+          "speaker": "Arjun",
+          "workDone": "Finished export button UI and basic CSV logic.",
+          "blocker": null,
+          "actionItem": "Build XLSX export prototype.",
+          "owner": "Arjun",
+          "eta": "Monday",
+          "priority": "medium",
+          "status": "in_progress",
+          "notes": "Waiting for sprint scope confirmation was resolved in the meeting.",
+          "confidence": 0.87
+        }
+      ]
+    }
+  }
+}
+

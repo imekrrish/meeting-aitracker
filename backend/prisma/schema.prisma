@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ProcessingHistory {
+  id                 String   @id @default(cuid())
+  userName           String
+  userEmail          String
+  meetingTitle       String
+  projectName        String?
+  transcriptText     String
+  overallSummary     String
+  managerSummary     String?
+  structuredJson     String
+  generatedExcelPath String
+  generatedPdfPath   String
+  emailSent          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+}
+

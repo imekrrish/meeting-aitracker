@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "0d1f3fd7-8d78-4fcb-b0cb-bf349abf2624",
+      "userName": "Aarav Mehta",
+      "userEmail": "aarav@example.com",
+      "meetingTitle": "Billing Dashboard Sync",
+      "projectName": "Finance Analytics",
+      "overallSummary": "The team reviewed billing dashboard progress, kept XLSX export in scope, and identified finance credentials as the main blocker.",
+      "generatedExcelUrl": "/generated/0d1f3fd7-8d78-4fcb-b0cb-bf349abf2624/meeting-tracker.xlsx",
+      "generatedPdfUrl": "/generated/0d1f3fd7-8d78-4fcb-b0cb-bf349abf2624/meeting-summary.pdf",
+      "emailSent": true,
+      "createdAt": "2026-03-11T15:00:00.000Z"
+    }
+  ]
+}
+
