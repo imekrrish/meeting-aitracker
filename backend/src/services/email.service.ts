@@ -1,16 +1,9 @@
-import nodemailer from "nodemailer";
+import fs from "fs";
+import { Resend } from "resend";
 import { env } from "../config/env";
 
 export class EmailService {
-  private readonly transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_PORT === 465,
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS
-    }
-  });
+  private readonly resend = new Resend(env.RESEND_API_KEY);
 
   public async sendMeetingResults(params: {
     to: string;
@@ -20,7 +13,10 @@ export class EmailService {
     pdfPath: string;
     excelPath: string;
   }) {
-    await this.transporter.sendMail({
+    const pdfBuffer = await fs.promises.readFile(params.pdfPath);
+    const excelBuffer = await fs.promises.readFile(params.excelPath);
+
+    await this.resend.emails.send({
       from: env.MAIL_FROM,
       to: params.to,
       subject: `Meeting Tracker AI: ${params.meetingTitle}`,
@@ -28,11 +24,11 @@ export class EmailService {
       attachments: [
         {
           filename: "meeting-summary.pdf",
-          path: params.pdfPath
+          content: pdfBuffer
         },
         {
           filename: "meeting-tracker.xlsx",
-          path: params.excelPath
+          content: excelBuffer
         }
       ]
     });
