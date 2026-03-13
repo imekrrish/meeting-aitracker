@@ -18,9 +18,9 @@ export function ResultsSection({ result }: ResultsSectionProps) {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg mb-4 text-2xl">
           ✓
         </div>
-        <h2 className="font-display text-3xl font-bold tracking-tight">Meeting Summarized and Sent!</h2>
+        <h2 className="font-display text-3xl font-bold tracking-tight">Meeting Summarized!</h2>
         <p className="mt-2 text-lg opacity-80 max-w-xl mx-auto">
-          We have successfully processed your transcript, generated the custom Microsoft Excel artifacts, and emailed them directly to your address.
+          We have successfully processed your transcript and generated the Microsoft Excel and PDF artifacts. <strong>Please download them using the buttons below—they will only be available once!</strong>
         </p>
       </div>
 

@@ -28,21 +28,21 @@ export class AuthService {
                 name: params.name,
                 email: params.email,
                 passwordHash,
-                isVerified: false
+                // Automatically verified for now
+                isVerified: true
             }
         });
 
-        // Generate and store OTP
-        const code = this.generateOtp();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-        await prisma.otpToken.create({
-            data: { email: params.email, code, expiresAt }
-        });
+        // Skip OTP generation and email
+        // const code = this.generateOtp();
+        // const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+        // await prisma.otpToken.create({
+        //     data: { email: params.email, code, expiresAt }
+        // });
+        // await this.sendOtpEmail(params.email, params.name, code);
 
-        // Send OTP email
-        await this.sendOtpEmail(params.email, params.name, code);
-
-        return { userId: user.id, email: user.email, message: "OTP sent to your email." };
+        const token = this.signToken(user.id, user.email, user.name);
+        return { token, user: { id: user.id, name: user.name, email: user.email }, message: "Account created successfully." };
     }
 
     public async verifyOtp(params: { email: string; code: string }) {
@@ -83,9 +83,9 @@ export class AuthService {
             throw new HttpError(401, "Invalid email or password.");
         }
 
-        if (!user.isVerified) {
-            throw new HttpError(403, "Please verify your email first.");
-        }
+        // if (!user.isVerified) {
+        //     throw new HttpError(403, "Please verify your email first.");
+        // }
 
         const token = this.signToken(user.id, user.email, user.name);
         return { token, user: { id: user.id, name: user.name, email: user.email } };

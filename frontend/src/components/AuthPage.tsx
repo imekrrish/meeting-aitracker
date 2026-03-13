@@ -70,9 +70,9 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || data.data?.message || "Registration failed.");
-            setSuccess("OTP sent to your email! Check your inbox.");
-            setStep("otp");
-            setOtpTimer(300); // 5 minutes
+            setSuccess("Account created successfully!");
+            // Auto login since OTP is disabled
+            handleLogin(e);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -148,6 +148,14 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                     <p className="text-sm font-semibold uppercase tracking-[0.35em] text-tide">Meeting Tracker AI</p>
                     <h1 className="mt-3 font-display text-4xl font-bold text-ink">Welcome</h1>
                     <p className="mt-2 text-sm text-slate-600">Sign in or create an account to get started.</p>
+                </div>
+
+                {/* temporary message */}
+                <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    <p className="font-semibold mb-1">⚠️ Temporary Notice</p>
+                    <p>
+                        Email verification is temporarily disabled — you can log in immediately after registering. Also, please note that while the meeting summary will be available in the app, the <strong>PDF and Excel attachments will only be available for download once immediately after processing</strong>. We are actively working on restoring full email functionality!
+                    </p>
                 </div>
 
                 {/* Glass card */}

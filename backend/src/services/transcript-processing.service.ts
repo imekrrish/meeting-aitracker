@@ -88,29 +88,29 @@ export class TranscriptProcessingService {
 
     let emailResult = {
       sent: false,
-      message: "Email failed. Downloads are still available."
+      message: "Email functionality is temporarily disabled. Please download your files."
     };
 
-    try {
-      await this.emailService.sendMeetingResults({
-        to: sanitizedInput.email,
-        userName: sanitizedInput.fullName ?? "User",
-        meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-        overallSummary: insights.overallSummary,
-        pdfPath,
-        excelPath
-      });
-      emailResult = {
-        sent: true,
-        message: "Email sent successfully."
-      };
-    } catch (error) {
-      emailResult = {
-        sent: false,
-        message:
-          error instanceof Error ? `Email failed: ${error.message}` : "Email failed. Downloads are still available."
-      };
-    }
+    // try {
+    //   await this.emailService.sendMeetingResults({
+    //     to: sanitizedInput.email,
+    //     userName: sanitizedInput.fullName ?? "User",
+    //     meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
+    //     overallSummary: insights.overallSummary,
+    //     pdfPath,
+    //     excelPath
+    //   });
+    //   emailResult = {
+    //     sent: true,
+    //     message: "Email sent successfully."
+    //   };
+    // } catch (error) {
+    //   emailResult = {
+    //     sent: false,
+    //     message:
+    //       error instanceof Error ? `Email failed: ${error.message}` : "Email failed. Downloads are still available."
+    //   };
+    // }
 
     const record = await this.historyService.createRecord({
       id: historyId,
