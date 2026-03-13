@@ -84,13 +84,7 @@ export class AuthService {
         }
 
         if (!user.isVerified) {
-            // Automatically queue up a new verification email
-            await this.resendOtp({ email: params.email }).catch(() => {});
-            return {
-                requiresVerification: true,
-                email: user.email,
-                message: "Please verify your email to continue. We just sent you a new code."
-            };
+            throw new HttpError(403, "Please verify your email first.");
         }
 
         const token = this.signToken(user.id, user.email, user.name);
