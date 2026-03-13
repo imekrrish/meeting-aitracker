@@ -116,10 +116,15 @@ export class AuthService {
     }
 
     private async sendOtpEmail(to: string, name: string, code: string) {
-        const { Resend } = await import("resend");
-        const resend = new Resend(env.RESEND_API_KEY);
+        const nodemailer = await import("nodemailer");
+        const transporter = nodemailer.default.createTransport({
+            host: env.SMTP_HOST,
+            port: env.SMTP_PORT,
+            secure: env.SMTP_PORT === 465,
+            auth: { user: env.SMTP_USER, pass: env.SMTP_PASS }
+        });
 
-        await resend.emails.send({
+        await transporter.sendMail({
             from: env.MAIL_FROM,
             to,
             subject: "Meeting Tracker AI — Your Verification Code",
