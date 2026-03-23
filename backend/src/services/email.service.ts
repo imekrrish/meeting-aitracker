@@ -48,6 +48,7 @@ export class EmailService {
     userName: string;
     meetingTitle: string;
     overallSummary: string;
+    pdfPath?: string | null;
     pdfUrl?: string;
     excelUrl?: string;
   }) {
