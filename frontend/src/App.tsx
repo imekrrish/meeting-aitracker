@@ -14,6 +14,7 @@ import {
 import type { AuthSession, HistoryItem, MicrosoftIntegrationStatus, ProcessResponse } from "./types/api";
 
 type AuthUser = AuthSession["user"];
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
@@ -177,7 +178,7 @@ export default function App() {
   };
 
   const handleEnableAutomation = () => {
-    window.location.href = "http://localhost:3000/auth/microsoft/login?mode=automation";
+    window.location.href = `${API_URL}/auth/microsoft/login?mode=automation`;
   };
 
   if (!token || !user) {
@@ -272,7 +273,7 @@ export default function App() {
                 ) : null}
                 {!integration?.connected ? (
                   <a
-                    href="http://localhost:3000/auth/microsoft/login"
+                    href={`${API_URL}/auth/microsoft/login`}
                     className="inline-flex rounded-full bg-[#0f5ea8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0b4d8b]"
                   >
                     Connect Microsoft
