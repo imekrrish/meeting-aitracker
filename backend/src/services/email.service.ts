@@ -17,24 +17,30 @@ export class EmailService {
     userName: string;
     meetingTitle: string;
     overallSummary: string;
-    pdfPath: string;
+    pdfPath?: string | null;
     excelPath: string;
+    pdfUrl?: string;
+    excelUrl?: string;
   }) {
+    const attachments = [
+      params.pdfPath
+        ? {
+            filename: "meeting-summary.pdf",
+            path: params.pdfPath
+          }
+        : null,
+      {
+        filename: "meeting-tracker.xlsx",
+        path: params.excelPath
+      }
+    ].filter(Boolean) as Array<{ filename: string; path: string }>;
+
     await this.transporter.sendMail({
       from: env.MAIL_FROM,
       to: params.to,
       subject: `Meeting Tracker AI: ${params.meetingTitle}`,
       html: this.buildHtmlTemplate(params),
-      attachments: [
-        {
-          filename: "meeting-summary.pdf",
-          path: params.pdfPath
-        },
-        {
-          filename: "meeting-tracker.xlsx",
-          path: params.excelPath
-        }
-      ]
+      attachments
     });
   }
 
@@ -42,6 +48,8 @@ export class EmailService {
     userName: string;
     meetingTitle: string;
     overallSummary: string;
+    pdfUrl?: string;
+    excelUrl?: string;
   }) {
     return `
       <div style="font-family: Arial, sans-serif; background: #f6f8fc; padding: 24px; color: #162033;">
@@ -53,7 +61,14 @@ export class EmailService {
             <p style="margin: 0 0 8px; font-weight: 700; color: #173670;">Overall summary</p>
             <p style="margin: 0; line-height: 1.7; color: #23324e;">${params.overallSummary}</p>
           </div>
-          <p style="margin: 0; font-size: 14px; color: #5b6983;">Attachments included: <strong>meeting-summary.pdf</strong> and <strong>meeting-tracker.xlsx</strong>.</p>
+          <p style="margin: 0; font-size: 14px; color: #5b6983;">Attachments included: <strong>meeting-tracker.xlsx</strong>${params.pdfUrl || params.pdfPath ? " and <strong>meeting-summary.pdf</strong>" : ""}.</p>
+          ${params.pdfUrl || params.excelUrl
+        ? `<div style="margin-top: 18px; font-size: 14px; color: #23324e;">
+                <p style="margin: 0 0 8px; font-weight: 700;">Cloud downloads</p>
+                ${params.pdfUrl ? `<p style="margin: 0 0 4px;"><a href="${params.pdfUrl}">Download PDF</a></p>` : ""}
+                ${params.excelUrl ? `<p style="margin: 0;"><a href="${params.excelUrl}">Download Excel</a></p>` : ""}
+             </div>`
+        : ""}
           <p style="margin: 18px 0 0; font-size: 13px; color: #76829a;">Use a Gmail App Password for SMTP. Standard account passwords are not supported.</p>
         </div>
       </div>

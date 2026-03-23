@@ -15,9 +15,13 @@ export function authMiddleware(req: AuthenticatedRequest, _res: Response, next: 
         return next(new HttpError(401, "Authentication required. Please log in."));
     }
 
+    if (!env.JWT_SECRET) {
+        return next(new HttpError(500, "JWT_SECRET is not configured on the backend."));
+    }
+
     const token = authHeader.slice(7);
     try {
-        const payload = jwt.verify(token, env.JWT_SECRET) as {
+        const payload = jwt.verify(token, env.JWT_SECRET) as unknown as {
             userId: string;
             email: string;
             name: string;

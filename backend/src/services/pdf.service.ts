@@ -43,7 +43,7 @@ export class PdfService {
 
     const writeBlock = (text: string, size: number, isBold = false, color?: ReturnType<typeof rgb>) => {
       const activeFont = isBold ? bold : regular;
-      const lines = this.wrapText(text, activeFont, size, usableWidth);
+      const lines = this.wrapText(this.normalizePdfText(text), activeFont, size, usableWidth);
       lines.forEach((line) => writeLine(line, size, activeFont, color));
       cursorY -= 4;
     };
@@ -90,6 +90,19 @@ export class PdfService {
     const outputPath = path.join(params.outputDir, "meeting-summary.pdf");
     await fs.writeFile(outputPath, pdfBytes);
     return outputPath;
+  }
+
+  private normalizePdfText(text: string) {
+    return text
+      .replace(/→/g, "->")
+      .replace(/←/g, "<-")
+      .replace(/•/g, "-")
+      .replace(/…/g, "...")
+      .replace(/[“”]/g, "\"")
+      .replace(/[‘’]/g, "'")
+      .replace(/[—–]/g, "-")
+      .replace(/\u00A0/g, " ")
+      .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
   }
 
   private wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {

@@ -19,11 +19,11 @@ export class ExcelService {
 
     const defaultColumns = [
       "Speaker",
-      "Task",
-      "Work Done Today",
-      "Task Progress",
-      "Deadline",
-      "Further Discussion"
+      "Yesterday",
+      "Today",
+      "Blocked By",
+      "Need Clarification On",
+      "Tagging"
     ];
 
     const columnsToUse = Array.isArray(params.customColumns) && params.customColumns.length > 0

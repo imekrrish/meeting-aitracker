@@ -1,6 +1,10 @@
 export type TranscriptIngestionPayload = {
   transcriptText?: string;
   file?: Express.Multer.File;
+  microsoftTranscript?: {
+    transcriptText: string;
+    transcriptLabel?: string | null;
+  };
 };
 
 export type TranscriptIngestionResult = {

@@ -1,13 +1,16 @@
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware";
-import { TranscriptProcessingService } from "../services/transcript-processing.service";
 import { HttpError } from "../utils/http-error";
 import { emailTranscriptSchema, processTranscriptSchema } from "../validators/transcript.validator";
 
-const transcriptProcessingService = new TranscriptProcessingService();
-
 export class TranscriptController {
+  private async getTranscriptProcessingService() {
+    const { TranscriptProcessingService } = await import("../services/transcript-processing.service");
+    return new TranscriptProcessingService();
+  }
+
   public async process(req: AuthenticatedRequest, res: Response) {
+    const transcriptProcessingService = await this.getTranscriptProcessingService();
     transcriptProcessingService.validateFile(req.file);
 
     const transcriptText =
@@ -46,7 +49,11 @@ export class TranscriptController {
       transcriptText: req.body.transcriptText
     };
 
-    const result = await transcriptProcessingService.process(payload, req.file, req.userId!);
+    const result = await transcriptProcessingService.process(payload, req.file, {
+      userId: req.userId!,
+      name: req.userName!,
+      email: req.userEmail!
+    });
     return res.status(200).json({
       success: true,
       data: result
@@ -54,6 +61,7 @@ export class TranscriptController {
   }
 
   public async resendEmail(req: AuthenticatedRequest, res: Response) {
+    const transcriptProcessingService = await this.getTranscriptProcessingService();
     const parsed = emailTranscriptSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid email request.");
@@ -61,11 +69,6 @@ export class TranscriptController {
 
     const result = await transcriptProcessingService.resendEmail(parsed.data);
     return res.status(200).json({ success: true, data: result });
-  }
-
-  public async history(req: AuthenticatedRequest, res: Response) {
-    const items = await transcriptProcessingService.getHistory(req.userId!);
-    return res.status(200).json({ success: true, data: items });
   }
 }
 

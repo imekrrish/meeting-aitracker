@@ -12,8 +12,23 @@ export class AuthService {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    private signToken(userId: string, email: string, name: string): string {
+    public signToken(userId: string, email: string, name: string): string {
+        if (!env.JWT_SECRET) {
+            throw new HttpError(500, "JWT_SECRET is not configured on the backend.");
+        }
+
         return jwt.sign({ userId, email, name }, env.JWT_SECRET, { expiresIn: "7d" });
+    }
+
+    public buildAuthPayload(user: { id: string; email: string; name: string }) {
+        return {
+            token: this.signToken(user.id, user.email, user.name),
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email
+            }
+        };
     }
 
     public async register(params: { name: string; email: string; password: string }) {
@@ -41,8 +56,8 @@ export class AuthService {
         // });
         // await this.sendOtpEmail(params.email, params.name, code);
 
-        const token = this.signToken(user.id, user.email, user.name);
-        return { token, user: { id: user.id, name: user.name, email: user.email }, message: "Account created successfully." };
+        const authPayload = this.buildAuthPayload(user);
+        return { ...authPayload, message: "Account created successfully." };
     }
 
     public async verifyOtp(params: { email: string; code: string }) {
@@ -68,14 +83,17 @@ export class AuthService {
         // Clean up used OTPs for this email
         await prisma.otpToken.deleteMany({ where: { email: params.email } });
 
-        const token = this.signToken(user.id, user.email, user.name);
-        return { token, user: { id: user.id, name: user.name, email: user.email } };
+        return this.buildAuthPayload(user);
     }
 
     public async login(params: { email: string; password: string }) {
         const user = await prisma.user.findUnique({ where: { email: params.email } });
         if (!user) {
             throw new HttpError(401, "Invalid email or password.");
+        }
+
+        if (!user.passwordHash) {
+            throw new HttpError(401, "This account uses Microsoft sign-in. Connect with Microsoft instead.");
         }
 
         const passwordValid = await bcrypt.compare(params.password, user.passwordHash);
@@ -87,8 +105,7 @@ export class AuthService {
         //     throw new HttpError(403, "Please verify your email first.");
         // }
 
-        const token = this.signToken(user.id, user.email, user.name);
-        return { token, user: { id: user.id, name: user.name, email: user.email } };
+        return this.buildAuthPayload(user);
     }
 
     public async resendOtp(params: { email: string }) {

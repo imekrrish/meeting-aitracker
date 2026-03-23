@@ -7,13 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProcessingSourceType {
+  manual
+  microsoft_teams
+}
+
+enum ProcessingStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum MicrosoftProcessingMode {
+  tagged_meetings_only
+  organizer_only
+}
+
 model User {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  email        String   @unique
-  passwordHash String
-  isVerified   Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  id                   String                @id @default(auto()) @map("_id") @db.ObjectId
+  name                 String
+  email                String                @unique
+  passwordHash         String?
+  isVerified           Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime?             @updatedAt
+  microsoftIntegration MicrosoftIntegration?
 
   history ProcessingHistory[]
 }
@@ -27,20 +46,59 @@ model OtpToken {
 }
 
 model ProcessingHistory {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId             String   @db.ObjectId
-  user               User     @relation(fields: [userId], references: [id])
-  userName           String?
-  userEmail          String
-  meetingTitle       String?
-  projectName        String?
-  transcriptText     String
-  overallSummary     String
-  managerSummary     String?
-  structuredJson     String
-  generatedExcelPath String
-  generatedPdfPath   String
-  emailSent          Boolean  @default(false)
-  createdAt          DateTime @default(now())
+  id                     String               @id @default(auto()) @map("_id") @db.ObjectId
+  userId                 String               @db.ObjectId
+  user                   User                 @relation(fields: [userId], references: [id])
+  sourceType             ProcessingSourceType? @default(manual)
+  status                 ProcessingStatus?     @default(completed)
+  processingMode         MicrosoftProcessingMode?
+  userName               String?
+  userEmail              String
+  meetingId              String?
+  transcriptId           String?
+  sourceLabel            String?
+  meetingTitle           String?
+  projectName            String?
+  meetingStartTime       DateTime?
+  meetingEndTime         DateTime?
+  transcriptText         String
+  overallSummary         String
+  managerSummary         String?
+  structuredJson         String
+  generatedExcelPath     String
+  generatedPdfPath       String
+  generatedExcelUrl      String?
+  generatedPdfUrl        String?
+  generatedExcelPublicId String?
+  generatedPdfPublicId   String?
+  emailSent              Boolean              @default(false)
+  emailError             String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime?            @updatedAt
+}
+
+model MicrosoftIntegration {
+  id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String                  @unique @db.ObjectId
+  user                  User                    @relation(fields: [userId], references: [id])
+  microsoftUserId       String
+  tenantId              String
+  email                 String
+  displayName           String
+  accessToken           String
+  refreshToken          String?
+  grantedScopes         String?
+  tokenExpiresAt        DateTime
+  automationEnabled     Boolean                 @default(true)
+  processingMode        MicrosoftProcessingMode @default(tagged_meetings_only)
+  subscriptionId        String?
+  subscriptionResource  String?
+  subscriptionClientState String?
+  subscriptionExpiresAt DateTime?
+  lastSyncError         String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime?               @updatedAt
+
+  @@unique([tenantId, microsoftUserId])
 }
 

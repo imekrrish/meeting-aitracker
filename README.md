@@ -1,264 +1,216 @@
 # Meeting Tracker AI
 
-Meeting Tracker AI is a production-structured MVP for turning raw meeting transcripts into usable project outputs. Users can upload a `.txt` transcript or paste transcript text, then receive:
+Meeting Tracker AI now supports two transcript sources in the same app:
 
-- validated AI-generated meeting insights
-- an Excel workbook
-- a professional PDF summary
-- automatic email delivery through Gmail SMTP
-- saved processing history in SQLite
+- manual transcript upload
+- Microsoft Teams transcript automation through Microsoft Graph
 
-The codebase is split into a React frontend and an Express backend, with a future-ready transcript adapter layer so Microsoft Graph / Teams automation can be added later without rewriting the core pipeline.
+The existing AI -> Excel -> PDF -> email pipeline is still reused. Microsoft automation is added as another source that feeds the same backend workflow.
 
-## Stack
+## What Changed
 
-- Frontend: React, Vite, TypeScript, Tailwind CSS
-- Backend: Node.js, Express, TypeScript
-- Validation: Zod
-- Uploads: multer
-- Excel: exceljs
-- PDF: pdf-lib
-- Email: nodemailer with Gmail SMTP
-- AI: OpenAI API
-- Database: SQLite with Prisma client
-- Config: dotenv
+- Microsoft OAuth login now signs the user into the app and stores a Microsoft integration record in MongoDB.
+- Teams transcript automation is handled through Microsoft Graph change notifications.
+- Generated Excel and PDF files can be uploaded to Cloudinary and saved in meeting history.
+- The dashboard now shows:
+  - Microsoft integration status
+  - automation settings
+  - recent processed meetings
+  - download links
+  - the existing manual upload flow
 
-`pdf-lib` was chosen over Puppeteer for the MVP because it avoids a Chromium dependency and keeps local setup lighter.
+## Backend Architecture
 
-## Folder Structure
+Existing services reused:
 
-```text
-meeting-tracker-ai/
-  backend/
-    prisma/
-    samples/
-    src/
-      config/
-      constants/
-      controllers/
-      middleware/
-      routes/
-      services/
-        adapters/
-        storage/
-      types/
-      utils/
-      validators/
-  frontend/
-    src/
-      components/
-      lib/
-      types/
+- [openai.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/openai.service.ts)
+- [excel.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/excel.service.ts)
+- [pdf.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/pdf.service.ts)
+- [email.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/email.service.ts)
+
+New orchestration/services:
+
+- [meeting-processing.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/meeting-processing.service.ts)
+- [microsoftAuth.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/microsoftAuth.service.ts)
+- [microsoftGraph.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/microsoftGraph.service.ts)
+- [transcriptSubscription.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/transcriptSubscription.service.ts)
+- [transcriptFetch.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/transcriptFetch.service.ts)
+- [cloudinary.service.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/cloudinary.service.ts)
+
+Transcript source adapters:
+
+- [manual-upload.adapter.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/adapters/manual-upload.adapter.ts)
+- [microsoft-teams.adapter.ts](/c:/Users/ChaitanyaLanka/Downloads/meeting-aitracker/backend/src/services/adapters/microsoft-teams.adapter.ts)
+
+## Key Endpoints
+
+Auth:
+
+- `GET /auth/microsoft/login`
+- `GET /auth/callback`
+- `GET /api/auth/session`
+- `POST /api/auth/logout`
+
+Microsoft integration:
+
+- `GET /api/integrations/microsoft/status`
+- `PATCH /api/integrations/microsoft/settings`
+
+Meetings:
+
+- `GET /api/meetings/history`
+- `GET /api/meetings/:id`
+- `GET /api/meetings/:id/download/excel`
+- `GET /api/meetings/:id/download/pdf`
+
+Webhook:
+
+- `POST /webhooks/microsoft/transcripts`
+
+## Prisma Models
+
+The Prisma schema now includes:
+
+- `User`
+- `MicrosoftIntegration`
+- `ProcessingHistory`
+- `OtpToken`
+
+`ProcessingHistory` stores both manual and Microsoft Teams runs, including source type, meeting ids, transcript ids, Cloudinary URLs, processing status, and email status/error metadata.
+
+## Required Environment Variables
+
+Backend:
+
+```env
+PORT=3000
+FRONTEND_URL=http://localhost:5173
+CLIENT_ORIGIN=http://localhost:5173
+REDIRECT_URI=http://localhost:3000/auth/callback
+
+CLIENT_ID=your-azure-app-client-id
+CLIENT_SECRET=your-azure-app-client-secret-value
+TENANT_ID=common
+MICROSOFT_LOGIN_SCOPES=User.Read offline_access OnlineMeetings.Read OnlineMeetingTranscript.Read.All
+MICROSOFT_WEBHOOK_URL=https://your-public-domain.example.com/webhooks/microsoft/transcripts
+MICROSOFT_SUBSCRIPTION_SECRET=replace-with-a-random-shared-secret
+
+JWT_SECRET=replace-with-a-long-random-secret
+DATABASE_URL=your-mongodb-connection-string
+OPENAI_API_KEY=your-openai-api-key
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-app-password
+MAIL_FROM=Meeting Tracker AI <no-reply@example.com>
+
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 ```
 
-## Architecture
+Frontend:
 
-The backend is deliberately separated into stages:
+```env
+VITE_API_URL=http://localhost:3000
+```
 
-- Transcript ingestion: adapter layer in `backend/src/services/adapters`
-- Transcript normalization: `backend/src/services/transcript-normalizer.service.ts`
-- AI extraction: `backend/src/services/openai.service.ts`
-- File generation: `backend/src/services/excel.service.ts` and `backend/src/services/pdf.service.ts`
-- Email delivery: `backend/src/services/email.service.ts`
-- Persistence: `backend/src/services/history.service.ts`
-- Future integrations: `TranscriptSourceAdapter` interface
+## Microsoft Graph Requirements
 
-Implemented adapter:
+Azure app registration should include:
 
-- `ManualUploadAdapter`
+- Web redirect URI: `http://localhost:3000/auth/callback`
+- Delegated scopes:
+  - `User.Read`
+  - `offline_access`
+  - `OnlineMeetings.Read`
+  - `OnlineMeetingTranscript.Read.All`
 
-Planned future adapters:
+Important:
 
-- `MicrosoftTeamsAdapter`
-- `GoogleMeetAdapter`
-- `ZoomAdapter`
+- Teams transcript subscriptions are intended for work or school Microsoft accounts.
+- Personal Microsoft accounts do not reliably support the transcript subscription flow.
+- The webhook URL must be publicly reachable by Microsoft Graph. Use a tunnel such as `ngrok` during local development.
 
-## Local Setup
+## Local Run
 
-Requirements:
-
-- Node.js 20+ recommended
-- npm 10+ recommended
-- OpenAI API key
-- Gmail account with App Password enabled
-
-### 1. Install dependencies
+1. Install packages:
 
 ```bash
 npm install
 ```
 
-### 2. Create environment files
-
-Backend:
+2. Create env files:
 
 ```bash
-cp backend/.env.example backend/.env
+copy backend\\.env.example backend\\.env
+copy frontend\\.env.example frontend\\.env
 ```
 
-Frontend:
+3. Push Prisma schema to MongoDB:
 
 ```bash
-cp frontend/.env.example frontend/.env
+npm run db:push
 ```
 
-Windows PowerShell alternative:
-
-```powershell
-Copy-Item backend\.env.example backend\.env
-Copy-Item frontend\.env.example frontend\.env
-```
-
-### 3. Fill the backend environment
-
-Required values in `backend/.env`:
-
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASS`
-- `MAIL_FROM`
-- `DATABASE_URL`
-- `CLIENT_ORIGIN`
-
-Use a Gmail App Password for `SMTP_PASS`. Do not use your regular Gmail password.
-
-Recommended defaults:
-
-```env
-PORT=4000
-CLIENT_ORIGIN=http://localhost:5173
-OPENAI_MODEL=gpt-4.1-mini
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-DATABASE_URL=file:./dev.db
-MAX_UPLOAD_SIZE_MB=2
-```
-
-### 4. Run the app
+4. Start both apps:
 
 ```bash
 npm run dev
 ```
 
-That starts:
+5. Open:
 
-- frontend on `http://localhost:5173`
-- backend on `http://localhost:4000`
+- frontend: `http://localhost:5173`
+- backend: `http://localhost:3000`
 
-## Build Commands
+## Manual Flow
 
-```bash
-npm run build
-```
+1. Sign in with Microsoft.
+2. Dashboard loads.
+3. Use the Manual Upload section.
+4. Existing pipeline generates AI summary, Excel, PDF, Cloudinary URLs, DB history, and email.
 
-Extra scripts:
+## Microsoft Automation Flow
 
-- `npm run dev:frontend`
-- `npm run dev:backend`
-- `npm run db:generate`
-- `npm run db:push`
+1. Click `Connect Microsoft`.
+2. Finish consent.
+3. Backend creates or updates the user and Microsoft integration record.
+4. Backend registers or renews a transcript subscription for that user.
+5. When Microsoft sends a transcript-ready notification:
+   - webhook receives event
+   - backend fetches meeting metadata
+   - backend enforces safe rules
+   - transcript is fetched
+   - shared meeting-processing workflow runs
+   - Excel/PDF are uploaded to Cloudinary
+   - DB history is saved
+   - email is sent
 
-Note:
+## Safe Processing Rules
 
-- The backend also initializes the main SQLite table on startup through Prisma, so the MVP can boot even if `prisma db push` is skipped.
-- In this environment, `prisma generate` worked, but `prisma db push` returned a generic Prisma schema-engine error with SQLite. Because of that, startup includes a safe `CREATE TABLE IF NOT EXISTS` fallback for the `ProcessingHistory` table.
+Default processing mode is `tagged_meetings_only`.
 
-## API Endpoints
+Rules:
 
-- `GET /api/health`
-- `POST /api/transcripts/process`
-- `POST /api/transcripts/email`
-- `GET /api/history`
-
-## Request Format
-
-`POST /api/transcripts/process` accepts `multipart/form-data`.
-
-Fields:
-
-- `fullName`
-- `email`
-- `meetingTitle`
-- `projectName` optional
-- `transcriptText` optional if file is present
-- `transcriptFile` optional `.txt` file if text is present
-
-## Output JSON
-
-The backend requests structured JSON from OpenAI and validates it with Zod before using it.
-
-Core extracted fields:
-
-- `meetingTitleSuggestion`
-- `overallSummary`
-- `managerSummary`
-- `keyDecisions`
-- `blockers`
-- `risks`
-- `followUpQuestions`
-- `followUpEmailDraft`
-- `dailyStandupFormat`
-- `rows[]`
-
-Value-add fields:
-
-- `executiveSummary`
-- `ownerWiseActionTracker`
-- `blockerRadar`
-- `riskAndDependencySection`
-- `suggestedNextMeetingAgenda`
-- `highlightReel`
-
-## Excel Sheets
-
-The generated workbook contains:
-
-- `Summary`
-- `Structured Updates`
-- `Action Items`
-- `Blockers`
-- `Owner View`
-
-## PDF Sections
-
-The generated PDF contains:
-
-- meeting title
-- generated date/time
-- overall summary
-- manager summary
-- executive summary
-- key decisions
-- action items
-- blockers
-- risks
-- owner-wise tasks
-- next steps
-- suggested next meeting agenda
-- follow-up email draft
-
-## Security Notes
-
-- file size limit is enforced by multer
-- only plain-text transcript uploads are accepted in this MVP
-- metadata and transcript inputs are sanitized
-- malformed AI JSON is rejected
-- credentials are environment-driven only
-- email failure does not block downloads
-
-## Sample Assets
-
-- sample transcript: [backend/samples/sample-transcript.txt](/c:/Users/91918/Downloads/meeting-tracker-ai/backend/samples/sample-transcript.txt)
-- sample process response: [backend/samples/sample-response.json](/c:/Users/91918/Downloads/meeting-tracker-ai/backend/samples/sample-response.json)
-- sample history response: [backend/samples/sample-history-response.json](/c:/Users/91918/Downloads/meeting-tracker-ai/backend/samples/sample-history-response.json)
+- transcript must exist
+- meeting must be organized by the connected user
+- if mode is `tagged_meetings_only`, title must contain `[TRACK]`
+- if mode is `organizer_only`, organizer match is sufficient
 
 ## Verification Performed
 
-- `npm install`
-- `npm audit --json` returned zero vulnerabilities after dependency updates
-- `npm run build`
-- runtime health-check against `GET /api/health` with temporary local env values
+- frontend production build passes
+- backend TypeScript compilation passes with:
+  - `cmd /c ".\\node_modules\\.bin\\tsc.cmd -p backend\\tsconfig.json --noEmit"`
 
+Note:
+
+- the full backend `npm run build --workspace backend` can fail on Windows if Prisma's query engine DLL is locked by a running backend dev process
+- stop the backend dev server before running the full backend build if that occurs
+
+## Remaining Assumptions
+
+- webhook delivery from Microsoft Graph requires a public HTTPS callback URL
+- transcript subscription support depends on the Microsoft account type and tenant permissions
+- Cloudinary upload falls back to local generated file URLs if Cloudinary credentials are not configured

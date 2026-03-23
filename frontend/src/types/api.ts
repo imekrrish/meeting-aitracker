@@ -65,12 +65,53 @@ export type HistoryItem = {
   id: string;
   userName: string;
   userEmail: string;
+  sourceType: "manual" | "microsoft_teams";
+  status: "pending" | "processing" | "completed" | "failed";
+  processingMode: "tagged_meetings_only" | "organizer_only" | null;
+  meetingId: string | null;
+  transcriptId: string | null;
   meetingTitle: string;
   projectName: string | null;
+  meetingStartTime: string | null;
+  meetingEndTime: string | null;
   overallSummary: string;
-  generatedExcelUrl: string;
-  generatedPdfUrl: string;
+  summaryPreview: string;
+  generatedExcelUrl: string | null;
+  generatedPdfUrl: string | null;
   emailSent: boolean;
+  emailError: string | null;
   createdAt: string;
+  updatedAt: string;
+  structuredJson: MeetingInsights | null;
+};
+
+export type MicrosoftIntegrationStatus = {
+  connected: boolean;
+  email?: string;
+  displayName?: string;
+  automationEnabled: boolean;
+  processingMode: "tagged_meetings_only" | "organizer_only";
+  grantedScopes: string | null;
+  subscriptionExpiresAt: string | null;
+  lastSyncError: string | null;
+};
+
+export type AuthSession = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  microsoftIntegration: null | {
+    id: string;
+    email: string;
+    displayName: string;
+    automationEnabled: boolean;
+    processingMode: "tagged_meetings_only" | "organizer_only";
+    grantedScopes: string | null;
+    subscriptionId: string | null;
+    subscriptionExpiresAt: string | null;
+    lastSyncError: string | null;
+  };
 };
 

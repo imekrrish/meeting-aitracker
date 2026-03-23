@@ -25,11 +25,11 @@ export function TranscriptForm({ onSubmit, isLoading }: TranscriptFormProps) {
 
   const [columns, setColumns] = useState<string[]>([
     "Speaker",
-    "Task",
-    "Work Done Today",
-    "Task Progress",
-    "Deadline",
-    "Further Discussion"
+    "Yesterday",
+    "Today",
+    "Blocked By",
+    "Need Clarification On",
+    "Tagging"
   ]);
   const [newColumn, setNewColumn] = useState("");
 

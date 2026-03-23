@@ -22,11 +22,11 @@ export class OpenAIService {
     } else {
       rowProperties = {
         "Speaker": { type: ["string", "null"] },
-        "Task": { type: ["string", "null"] },
-        "Work Done Today": { type: ["string", "null"] },
-        "Task Progress": { type: ["string", "null"] },
-        "Deadline": { type: ["string", "null"] },
-        "Further Discussion": { type: ["string", "null"] }
+        "Yesterday": { type: ["string", "null"] },
+        "Today": { type: ["string", "null"] },
+        "Blocked By": { type: ["string", "null"] },
+        "Need Clarification On": { type: ["string", "null"] },
+        "Tagging": { type: ["string", "null"] }
       };
       rowRequired = Object.keys(rowProperties);
     }
@@ -125,8 +125,8 @@ export class OpenAIService {
   }): Promise<MeetingInsight> {
     const dynamicSchema = this.getInsightJsonSchema(params.customColumns);
     const customPromptInstructions = Array.isArray(params.customColumns) && params.customColumns.length > 0
-      ? `\nIMPORTANT: The user explicitly requested custom Excel columns for the row extractions: [${params.customColumns.join(", ")}]. You MUST extract the conversational data into these exact columns under the 'rows' property. CRITICAL: You MUST consolidate the rows so there is ONLY ONE row per person (Speaker). Group all of a speaker's tasks, progress, and discussion points into their single row. DO NOT create multiple rows for the same person.`
-      : "\nCRITICAL: For the 'rows' extraction, you MUST consolidate the rows so there is ONLY ONE row per person (Speaker). Group all of a speaker's tasks, progress, and discussion points into their single row. DO NOT create multiple rows for the same person.";
+      ? `\nIMPORTANT: The user explicitly requested custom Excel columns for the row extractions: [${params.customColumns.join(", ")}]. You MUST extract the conversational data into these exact columns under the 'rows' property. CRITICAL: Consolidate the rows so each person or owner is represented only once. Group all related updates, blockers, clarifications, and tags for that person into a single row.`
+      : "\nIMPORTANT: The default row columns are [Speaker, Yesterday, Today, Blocked By, Need Clarification On, Tagging]. CRITICAL: Consolidate the rows so each speaker or owner is represented only once, use the Speaker column for the primary person, and use the Tagging column for any supporting owner, participant, or team tag when helpful.";
 
     const response = await this.client.responses.create({
       model: env.OPENAI_MODEL,

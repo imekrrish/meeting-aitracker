@@ -1,27 +1,19 @@
-import { randomBytes } from "crypto";
+import { ProcessingSourceType, type MicrosoftProcessingMode } from "@prisma/client";
 import { env } from "../config/env";
 import { HttpError } from "../utils/http-error";
-import { sanitizeOptionalText, sanitizePlainText } from "../utils/sanitize";
 import type { EmailTranscriptInput, ProcessTranscriptInput } from "../validators/transcript.validator";
 import { ManualUploadAdapter } from "./adapters/manual-upload.adapter";
+import { MicrosoftTeamsAdapter } from "./adapters/microsoft-teams.adapter";
 import type { TranscriptIngestionPayload, TranscriptSourceAdapter } from "./adapters/transcript-source-adapter";
 import { EmailService } from "./email.service";
-import { ExcelService } from "./excel.service";
 import { HistoryService } from "./history.service";
-import { OpenAIService } from "./openai.service";
-import { PdfService } from "./pdf.service";
-import { ArtifactService } from "./storage/artifact.service";
-import { TranscriptNormalizerService } from "./transcript-normalizer.service";
+import { MeetingProcessingService } from "./meeting-processing.service";
 
 export class TranscriptProcessingService {
-  private readonly adapters: TranscriptSourceAdapter[] = [new ManualUploadAdapter()];
-  private readonly normalizerService = new TranscriptNormalizerService();
-  private readonly openAIService = new OpenAIService();
-  private readonly excelService = new ExcelService();
-  private readonly pdfService = new PdfService();
-  private readonly emailService = new EmailService();
+  private readonly adapters: TranscriptSourceAdapter[] = [new MicrosoftTeamsAdapter(), new ManualUploadAdapter()];
   private readonly historyService = new HistoryService();
-  private readonly artifactService = new ArtifactService();
+  private readonly emailService = new EmailService();
+  private readonly meetingProcessingService = new MeetingProcessingService();
 
   public validateFile(file?: Express.Multer.File) {
     if (!file) {
@@ -39,109 +31,64 @@ export class TranscriptProcessingService {
     }
   }
 
-  public async process(input: ProcessTranscriptInput, file: Express.Multer.File | undefined, userId: string) {
-    const sanitizedInput = {
-      fullName: input.fullName ? sanitizePlainText(input.fullName) : null,
-      email: sanitizePlainText(input.email),
-      meetingTitle: input.meetingTitle ? sanitizePlainText(input.meetingTitle) : null,
-      projectName: sanitizeOptionalText(input.projectName),
-      transcriptText: input.transcriptText ? sanitizePlainText(input.transcriptText) : undefined,
-      customColumns: input.customColumns
-    };
-
-    const ingestionPayload: TranscriptIngestionPayload = {
-      transcriptText: sanitizedInput.transcriptText,
-      file
-    };
-
-    const adapter = this.adapters.find((candidate) => candidate.canHandle(ingestionPayload));
-    if (!adapter) {
-      throw new HttpError(400, "No transcript ingestion adapter could handle this request.");
-    }
-
-    const ingested = await adapter.ingest(ingestionPayload);
-    const normalizedTranscript = this.normalizerService.normalize(ingested.transcriptText);
-    const insights = await this.openAIService.extractMeetingInsights({
-      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-      projectName: sanitizedInput.projectName,
-      transcriptText: normalizedTranscript,
-      customColumns: sanitizedInput.customColumns
-    });
-
-    const historyId = randomBytes(12).toString("hex");
-    const outputDir = await this.artifactService.ensureHistoryDir(historyId);
-    const excelPath = await this.excelService.generateWorkbook({
-      outputDir,
-      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-      projectName: sanitizedInput.projectName,
-      userName: sanitizedInput.fullName ?? "Unknown User",
-      insights,
-      customColumns: sanitizedInput.customColumns
-    });
-    const pdfPath = await this.pdfService.generatePdf({
-      outputDir,
-      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-      projectName: sanitizedInput.projectName,
-      userName: sanitizedInput.fullName ?? "Unknown User",
-      insights
-    });
-
-    let emailResult = {
-      sent: false,
-      message: "Email functionality is temporarily disabled. Please download your files."
-    };
-
-    // try {
-    //   await this.emailService.sendMeetingResults({
-    //     to: sanitizedInput.email,
-    //     userName: sanitizedInput.fullName ?? "User",
-    //     meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-    //     overallSummary: insights.overallSummary,
-    //     pdfPath,
-    //     excelPath
-    //   });
-    //   emailResult = {
-    //     sent: true,
-    //     message: "Email sent successfully."
-    //   };
-    // } catch (error) {
-    //   emailResult = {
-    //     sent: false,
-    //     message:
-    //       error instanceof Error ? `Email failed: ${error.message}` : "Email failed. Downloads are still available."
-    //   };
-    // }
-
-    const record = await this.historyService.createRecord({
-      id: historyId,
-      userId,
-      userName: sanitizedInput.fullName ?? "Unknown User",
-      userEmail: sanitizedInput.email,
-      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-      projectName: sanitizedInput.projectName,
-      transcriptText: normalizedTranscript,
-      insights,
-      generatedExcelPath: excelPath,
-      generatedPdfPath: pdfPath,
-      emailSent: emailResult.sent
-    });
-
-    return {
-      historyId: record.id,
-      meetingTitle: sanitizedInput.meetingTitle ?? "Meeting Summary",
-      projectName: sanitizedInput.projectName,
-      source: {
-        type: ingested.sourceType,
-        label: ingested.sourceLabel
+  public async process(input: ProcessTranscriptInput, file: Express.Multer.File | undefined, authUser: {
+    userId: string;
+    name: string;
+    email: string;
+  }) {
+    return this.processFromAdapter(
+      {
+        transcriptText: input.transcriptText,
+        file
       },
-      normalizedTranscriptPreview: normalizedTranscript.slice(0, 220),
-      downloads: {
-        excelUrl: this.artifactService.toPublicUrl(excelPath),
-        pdfUrl: this.artifactService.toPublicUrl(pdfPath)
+      {
+        userId: authUser.userId,
+        userName: authUser.name,
+        userEmail: authUser.email,
+        meetingTitle: input.meetingTitle || "Meeting Summary",
+        projectName: input.projectName || null,
+        customColumns: input.customColumns,
+        sourceType: ProcessingSourceType.manual
+      }
+    );
+  }
+
+  public async processMicrosoftTranscript(params: {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    transcriptText: string;
+    transcriptLabel?: string | null;
+    meetingId: string;
+    transcriptId: string;
+    meetingTitle: string;
+    projectName?: string | null;
+    meetingStartTime?: Date | null;
+    meetingEndTime?: Date | null;
+    processingMode: MicrosoftProcessingMode;
+  }) {
+    return this.processFromAdapter(
+      {
+        microsoftTranscript: {
+          transcriptText: params.transcriptText,
+          transcriptLabel: params.transcriptLabel
+        }
       },
-      email: emailResult,
-      insights
-    };
+      {
+        userId: params.userId,
+        userName: params.userName,
+        userEmail: params.userEmail,
+        sourceType: ProcessingSourceType.microsoft_teams,
+        sourceLabel: params.transcriptLabel ?? "Microsoft Teams transcript",
+        meetingId: params.meetingId,
+        transcriptId: params.transcriptId,
+        meetingTitle: params.meetingTitle,
+        projectName: params.projectName ?? null,
+        meetingStartTime: params.meetingStartTime ?? null,
+        meetingEndTime: params.meetingEndTime ?? null,
+        processingMode: params.processingMode
+      }
+    );
   }
 
   public async resendEmail(input: EmailTranscriptInput) {
@@ -156,27 +103,60 @@ export class TranscriptProcessingService {
       meetingTitle: record.meetingTitle ?? "Meeting Summary",
       overallSummary: record.overallSummary,
       pdfPath: record.generatedPdfPath,
-      excelPath: record.generatedExcelPath
+      excelPath: record.generatedExcelPath,
+      pdfUrl: record.generatedPdfUrl ?? undefined,
+      excelUrl: record.generatedExcelUrl ?? undefined
     });
 
-    await this.historyService.markEmailSent(record.id, true);
+    await this.historyService.markEmailSent(record.id, { emailSent: true, emailError: null });
     return { sent: true };
   }
 
   public async getHistory(userId: string) {
     const items = await this.historyService.listHistory(userId);
-    return items.map((item: any) => ({
-      id: item.id,
-      userName: item.userName,
-      userEmail: item.userEmail,
-      meetingTitle: item.meetingTitle,
-      projectName: item.projectName,
-      overallSummary: item.overallSummary,
-      generatedExcelUrl: this.artifactService.toPublicUrl(item.generatedExcelPath),
-      generatedPdfUrl: this.artifactService.toPublicUrl(item.generatedPdfPath),
-      emailSent: item.emailSent,
-      createdAt: item.createdAt
-    }));
+    return items.map((item) => this.historyService.toSummary(item));
+  }
+
+  private async processFromAdapter(
+    ingestionPayload: TranscriptIngestionPayload,
+    workflow: {
+      userId: string;
+      userName: string;
+      userEmail: string;
+      sourceType: ProcessingSourceType;
+      sourceLabel?: string | null;
+      processingMode?: MicrosoftProcessingMode;
+      meetingId?: string | null;
+      transcriptId?: string | null;
+      meetingTitle: string;
+      projectName: string | null;
+      meetingStartTime?: Date | null;
+      meetingEndTime?: Date | null;
+      customColumns?: string[];
+    }
+  ) {
+    const adapter = this.adapters.find((candidate) => candidate.canHandle(ingestionPayload));
+    if (!adapter) {
+      throw new HttpError(400, "No transcript ingestion adapter could handle this request.");
+    }
+
+    const ingested = await adapter.ingest(ingestionPayload);
+
+    return this.meetingProcessingService.processMeetingTranscriptWorkflow({
+      userId: workflow.userId,
+      userName: workflow.userName,
+      userEmail: workflow.userEmail,
+      sourceType: workflow.sourceType,
+      sourceLabel: workflow.sourceLabel ?? ingested.sourceLabel,
+      processingMode: workflow.processingMode,
+      meetingId: workflow.meetingId,
+      transcriptId: workflow.transcriptId,
+      meetingTitle: workflow.meetingTitle,
+      projectName: workflow.projectName,
+      meetingStartTime: workflow.meetingStartTime,
+      meetingEndTime: workflow.meetingEndTime,
+      transcriptText: ingested.transcriptText,
+      customColumns: workflow.customColumns
+    });
   }
 }
-
