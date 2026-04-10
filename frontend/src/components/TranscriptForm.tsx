@@ -84,7 +84,6 @@ export function TranscriptForm({ onSubmit, isLoading }: TranscriptFormProps) {
   return (
     <form onSubmit={handleSubmit} className="glass-panel space-y-6 p-6 md:p-8">
 
-
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <p className="font-medium text-sm text-slate-700 mb-3">Custom Excel Columns</p>
         <div className="flex flex-wrap gap-2 mb-4">
@@ -178,9 +177,13 @@ export function TranscriptForm({ onSubmit, isLoading }: TranscriptFormProps) {
         </label>
       </div>
 
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        📧 <strong>Note:</strong> Email delivery (SMTP) is still in progress. For now, please <strong>download</strong> the generated Excel and PDF files directly after processing.
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-xl text-sm text-slate-600">
-          The backend extracts structured insights with OpenAI, generates a customized Excel and PDF, and emails them to your registered email automatically.
+          The backend extracts structured insights with AI, generates a customized Excel and PDF report. Download them instantly after processing.
         </p>
         <button
           type="submit"

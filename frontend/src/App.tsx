@@ -78,16 +78,24 @@ export default function App() {
     setIsBootstrapping(true);
 
     try {
-      const [session, microsoftStatus, items] = await Promise.all([
-        getAuthSession(),
+      // Session is required — if this fails, token is invalid
+      const session = await getAuthSession();
+      localStorage.setItem("auth_user", JSON.stringify(session.user));
+      setUser(session.user);
+
+      // Microsoft integration and history are optional — don't block the dashboard
+      const [microsoftStatus, items] = await Promise.allSettled([
         getMicrosoftIntegrationStatus(),
         getHistory()
       ]);
 
-      localStorage.setItem("auth_user", JSON.stringify(session.user));
-      setUser(session.user);
-      setIntegration(microsoftStatus);
-      setHistory(items);
+      if (microsoftStatus.status === "fulfilled") {
+        setIntegration(microsoftStatus.value);
+      }
+
+      if (items.status === "fulfilled") {
+        setHistory(items.value);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load dashboard.";
       setDashboardError(message);
@@ -195,11 +203,11 @@ export default function App() {
                 Meeting Tracker AI
               </p>
               <h1 className="mt-4 max-w-4xl font-display text-4xl font-bold leading-tight text-ink md:text-6xl">
-                Teams automation plus manual transcript processing in one dashboard.
+                AI-powered meeting transcript processing dashboard.
               </h1>
               <p className="mt-5 max-w-3xl text-base leading-8 text-slate-700 md:text-lg">
-                Connect Microsoft once, automatically process eligible Teams transcripts, and keep the
-                manual upload option for everything else.
+                Upload your meeting transcripts to get AI-generated summaries, Excel reports, and PDF artifacts.
+                Optionally connect Microsoft for Teams automation.
               </p>
             </div>
 
@@ -425,7 +433,7 @@ export default function App() {
             <div className="mb-5">
               <p className="section-title">Manual Upload</p>
               <p className="mt-2 text-sm text-slate-600">
-                Keep using the existing manual transcript workflow whenever you need an ad-hoc run.
+                Upload a transcript to generate AI summaries, Excel, and PDF artifacts. Download the results instantly.
               </p>
             </div>
 

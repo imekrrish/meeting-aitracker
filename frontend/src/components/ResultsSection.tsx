@@ -20,7 +20,10 @@ export function ResultsSection({ result }: ResultsSectionProps) {
         </div>
         <h2 className="font-display text-3xl font-bold tracking-tight">Meeting Summarized!</h2>
         <p className="mt-2 text-lg opacity-80 max-w-xl mx-auto">
-          We have successfully processed your transcript and generated the Microsoft Excel and PDF artifacts. <strong>Please download them using the buttons below—they will only be available once!</strong>
+          We have successfully processed your transcript and generated the Excel and PDF artifacts. <strong>Please download them using the buttons below.</strong>
+        </p>
+        <p className="mt-3 text-sm opacity-60 max-w-md mx-auto">
+          📧 Email delivery is coming soon — for now, please use the download buttons.
         </p>
       </div>
 
